@@ -25,7 +25,7 @@ async def execute_code(payload: CodeRequest):
         sys.stdout = stdout_buffer  # Redirect stdout
         sys.stderr = stderr_buffer  # Redirect stderr
 
-        exec(code, {"__builtins__": {}}, {})  # Execute in a restricted environment
+        exec(code)  # Execute in a restricted environment
 
         sys.stdout = sys.__stdout__  # Restore stdout
         sys.stderr = sys.__stderr__  # Restore stderr
