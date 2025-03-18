@@ -1,34 +1,41 @@
 from fastapi import FastAPI, HTTPException
-import subprocess
-import os
-import tempfile
+from pydantic import BaseModel
+import io
+import sys
 
 app = FastAPI()
 
+# Define a request model
+class CodeRequest(BaseModel):
+    code: str
+
 @app.post("/execute")
-async def execute_code(payload: dict):
-    """Executes the received Python code and returns the result."""
-    code = payload.get("code", "")
+async def execute_code(payload: CodeRequest):
+    """Executes the received Python code directly in memory."""
+    code = payload.code
 
     if not code:
         raise HTTPException(status_code=400, detail="No code received")
 
     try:
-        # Create a temporary file to store the code
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".py", mode="w") as temp_file:
-            temp_file.write(code)
-            temp_file_path = temp_file.name
+        # Capture standard output and errors
+        stdout_buffer = io.StringIO()
+        stderr_buffer = io.StringIO()
 
-        # Execute the code and capture the output
-        result = subprocess.run(
-            ["python3", temp_file_path],  # Use "python3" for Render compatibility
-            capture_output=True, text=True
-        )
+        sys.stdout = stdout_buffer  # Redirect stdout
+        sys.stderr = stderr_buffer  # Redirect stderr
 
-        # Remove the temporary file after execution
-        os.remove(temp_file_path)
+        exec(code, {"__builtins__": {}}, {})  # Execute in a restricted environment
 
-        return {"output": result.stdout.strip(), "errors": result.stderr.strip()}
+        sys.stdout = sys.__stdout__  # Restore stdout
+        sys.stderr = sys.__stderr__  # Restore stderr
+
+        return {
+            "output": stdout_buffer.getvalue().strip(),
+            "errors": stderr_buffer.getvalue().strip()
+        }
 
     except Exception as e:
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
         raise HTTPException(status_code=500, detail=str(e))
