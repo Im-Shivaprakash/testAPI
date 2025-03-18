@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 import subprocess
+import os
 import tempfile
-import os 
 
 app = FastAPI()
 
@@ -11,7 +11,7 @@ async def execute_code(payload: dict):
     code = payload.get("code", "")
 
     if not code:
-        raise HTTPException(status_code=400, detail="No code received")  # Proper error handling
+        raise HTTPException(status_code=400, detail="No code received")
 
     try:
         # Create a temporary file to store the code
@@ -21,7 +21,7 @@ async def execute_code(payload: dict):
 
         # Execute the code and capture the output
         result = subprocess.run(
-            ["python", temp_file_path],
+            ["python3", temp_file_path],  # Use "python3" for Render compatibility
             capture_output=True, text=True
         )
 
